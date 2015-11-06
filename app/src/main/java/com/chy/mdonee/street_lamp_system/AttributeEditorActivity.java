@@ -199,7 +199,7 @@ public class AttributeEditorActivity extends Activity {
 
     // TODO handle rotation
     mExcuteTimer = new Timer();
-    mExcuteTimer.schedule(new timerListener(),1000,2000);
+    //mExcuteTimer.schedule(new timerListener(),1000,2000);
     mHandler = new Handler() {
       @Override
       public void handleMessage(Message msg) {
