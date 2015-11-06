@@ -18,6 +18,8 @@ package com.chy.mdonee.street_lamp_system;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -79,13 +81,14 @@ public class AttributeEditorActivity extends Activity {
   View listLayout;
 
   public static TextView mTextView ;
-  public String mLampState;
+  public static String mLampState = "this is null";
   //定时器
   public Timer mExcuteTimer;
   public Handler mHandler;
   public static final int DONE = 1;
 
-
+  public static final String LAMP_STATE_ATTRIBUTE = "CS";
+  public static final String LAMP_ON_VALUE = "1";
 
   public static final String TAG = "AttributeEditorSample";
 
@@ -203,10 +206,13 @@ public class AttributeEditorActivity extends Activity {
     mHandler = new Handler() {
       @Override
       public void handleMessage(Message msg) {
-        LampStateExcute();
-        mTextView.setText(mLampState);
+
+        String str = LampStateExcute();
+        mTextView.setText(str);
+        Log.d(TAG, "--------------finish--------------");
       }
     };
+
   }
 
   /**
@@ -392,6 +398,36 @@ public class AttributeEditorActivity extends Activity {
     };
   }
   public void onClick (View v){
+    ProgressDialog dialog = new ProgressDialog(this);
+    dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);// 设置进度条的形式为圆形转动的进度条
+    dialog.setCancelable(true);// 设置是否可以通过点击Back键取消
+    dialog.setCanceledOnTouchOutside(false);// 设置在点击Dialog外是否取消Dialog进度条
+    //dialog.setIcon(R.drawable.ic_launcher);//
+    // 设置提示的title的图标，默认是没有的，如果没有设置title的话只设置Icon是不会显示图标的
+    dialog.setTitle("提示");
+    // dismiss监听
+    dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+
+      @Override
+      public void onDismiss(DialogInterface dialog) {
+        // TODO Auto-generated method stub
+
+      }
+    });
+    // 监听cancel事件
+    dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+
+      @Override
+      public void onCancel(DialogInterface dialog) {
+        // TODO Auto-generated method stub
+        Message msg = new Message();
+        mHandler.sendMessage(msg);
+
+      }
+    });
+    dialog.setMessage("这是一个圆形进度条");
+    dialog.show();
+
   }
 
   class timerListener extends TimerTask {
@@ -404,7 +440,7 @@ public class AttributeEditorActivity extends Activity {
 
     }
 
-  public void LampStateExcute(){
+  public String LampStateExcute(){
     Query query = new Query();
     query.setOutFields(new String[] { "*" });
     query.setSpatialRelationship(SpatialRelationship.INTERSECTS);
@@ -423,13 +459,43 @@ public class AttributeEditorActivity extends Activity {
 
       public void onCallback(FeatureSet queryResults) {
 
+        ProgressDialog dialog = new ProgressDialog(getApplicationContext());
+        dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);// 设置进度条的形式为圆形转动的进度条
+        dialog.setCancelable(true);// 设置是否可以通过点击Back键取消
+        dialog.setCanceledOnTouchOutside(false);// 设置在点击Dialog外是否取消Dialog进度条
+        //dialog.setIcon(R.drawable.ic_launcher);//
+        // 设置提示的title的图标，默认是没有的，如果没有设置title的话只设置Icon是不会显示图标的
+        dialog.setTitle("提示");
+        // dismiss监听
+        dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+
+          @Override
+          public void onDismiss(DialogInterface dialog) {
+            // TODO Auto-generated method stub
+
+          }
+        });
+        // 监听cancel事件
+        dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+
+          @Override
+          public void onCancel(DialogInterface dialog) {
+            // TODO Auto-generated method stub
+            Message msg = new Message();
+            mHandler.sendMessage(msg);
+
+          }
+        });
+        dialog.setMessage("这是一个圆形进度条");
+        dialog.show();
+
         if (queryResults.getGraphics().length > 0) {
 
           //Log.d(TAG,"--------------Feature number is "+ queryResults.getGraphics().length+"--------------" );
           int onlight = 0;
           for (int i = 0; i < queryResults.getGraphics().length; i++) {
             Graphic gra = queryResults.getGraphics()[i];
-            if ((gra.getAttributeValue("CS") != null) && (gra.getAttributeValue("CS").toString().equals("1"))) {
+            if ((gra.getAttributeValue(LAMP_STATE_ATTRIBUTE) != null) && (gra.getAttributeValue(LAMP_STATE_ATTRIBUTE).toString().equals(LAMP_ON_VALUE))) {
               onlight = onlight + 1;
             }
 
@@ -437,11 +503,12 @@ public class AttributeEditorActivity extends Activity {
           Log.d(TAG, "--------------Feature  onlight is" + onlight + "--------------");
           double rate = (onlight + 0.0) / queryResults.getGraphics().length * 100;
           mLampState = "灯亮率为" + new java.text.DecimalFormat("#.00").format(rate);
+
         }
-        featureLayer.clearSelection();
+        dialog.dismiss();
       }
     });
-
+    return mLampState;
   }
 
 
