@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Street_Lamp_System</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="btn_edit_apply">Apply</string>
+    <string name="btn_edit_discard">Discard</string>
+</resources>
