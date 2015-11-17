@@ -5,4 +5,7 @@
     <string name="action_settings">Settings</string>
     <string name="btn_edit_apply">Apply</string>
     <string name="btn_edit_discard">Discard</string>
+    <string name="title_activity_layer_settings">layer_settings</string>
+    <string name="ArcGISDynamicMapServiceLayer_label">DynamicMapServiceLayer</string>
+    <string name="ArcGISFeatureLayer_label">FeatureLayer</string>
 </resources>

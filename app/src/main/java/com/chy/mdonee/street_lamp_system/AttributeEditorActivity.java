@@ -17,10 +17,11 @@
 package com.chy.mdonee.street_lamp_system;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
-import android.database.sqlite.SQLiteDatabase;
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -43,7 +44,10 @@ import com.esri.android.map.event.OnSingleTapListener;
 import com.esri.android.map.event.OnStatusChangedListener;
 import com.chy.mdonee.street_lamp_system.FeatureLayerUtils.FieldType;
 import com.esri.core.geometry.Envelope;
+import com.esri.core.geometry.Geometry;
+import com.esri.core.geometry.GeometryEngine;
 import com.esri.core.geometry.Point;
+import com.esri.core.geometry.Polygon;
 import com.esri.core.map.CallbackListener;
 import com.esri.core.map.FeatureEditResult;
 import com.esri.core.map.FeatureSet;
@@ -85,30 +89,35 @@ public class AttributeEditorActivity extends Activity {
   //定时器
   public Timer mExcuteTimer;
   public Handler mHandler;
-  public static final int DONE = 1;
 
-  public static final String LAMP_STATE_ATTRIBUTE = "CS";
-  public static final String LAMP_ON_VALUE = "1";
+  public static final String LAMP_STATE_ATTRIBUTE = "STATE2";
+  public static final String LAMP_ON_VALUE = "正常";
 
   public static final String TAG = "AttributeEditorSample";
 
   static final int ATTRIBUTE_EDITOR_DIALOG_ID = 1;
 
+  public Context mContext;
+
+  //读取图层地址
+  public ProfileReader settingReader;
+
+  //单击半径
+  public int RADIUS = 10;
+
   @Override
   public void onCreate(Bundle savedInstanceState) {
 
     super.onCreate(savedInstanceState);
-
-    dmsl = new ArcGISDynamicMapServiceLayer("http://192.168.20.100:6080/arcgis/rest/services/FeatureAccess/Test_FeatureAccess//MapServer");
-
-	featureLayer = new ArcGISFeatureLayer(
-			"http://192.168.20.100:6080/arcgis/rest/services/FeatureAccess/Test_FeatureAccess/FeatureServer/0",
-			MODE.ONDEMAND);
-
-	setContentView(R.layout.main);
+    setContentView(R.layout.main);
+    settingReader = new ProfileReader(this);
     mapView = (MapView)this.findViewById(R.id.map);
-    mapView.addLayer(dmsl);
+	//featureLayer = new ArcGISFeatureLayer("http://192.168.20.100:6080/arcgis/rest/services/FeatureAccess/lamp_state/FeatureServer/0",MODE.ONDEMAND);
+    featureLayer = new ArcGISFeatureLayer(settingReader.getValues(layer_settings.mFLayer),MODE.ONDEMAND);
     mapView.addLayer(featureLayer);
+    //dmsl = new ArcGISDynamicMapServiceLayer("http://192.168.20.100:6080/arcgis/rest/services/FeatureAccess/lamp_state/MapServer");
+    dmsl = new ArcGISDynamicMapServiceLayer(settingReader.getValues(layer_settings.mDLayer));
+    mapView.addLayer(dmsl);
     SimpleFillSymbol sfs = new SimpleFillSymbol(Color.TRANSPARENT);
     sfs.setOutline(new SimpleLineSymbol(Color.YELLOW, 3));
     featureLayer.setSelectionSymbol(sfs);
@@ -119,11 +128,11 @@ public class AttributeEditorActivity extends Activity {
     listView = (ListView) listLayout.findViewById(R.id.list_view);
 
     // Create a new AttributeListAdapter when the feature layer is initialized
-    if (featureLayer.isInitialized()) {
 
+    if (featureLayer.isInitialized()) {
       listAdapter = new AttributeListAdapter(this, featureLayer.getFields(), featureLayer.getTypes(),
           featureLayer.getTypeIdField());
-
+      featureCalculate();
     } else {
 
       featureLayer.setOnStatusChangedListener(new OnStatusChangedListener() {
@@ -135,6 +144,40 @@ public class AttributeEditorActivity extends Activity {
           if (status == STATUS.INITIALIZED) {
             listAdapter = new AttributeListAdapter(AttributeEditorActivity.this, featureLayer.getFields(), featureLayer
                 .getTypes(), featureLayer.getTypeIdField());
+          }
+          else if(status == STATUS.INITIALIZATION_FAILED){
+            new AlertDialog.Builder(mContext)
+                    .setTitle("无法载入图层")
+                    .setMessage("FeatureLayer地址无法连接"+featureLayer.getUrl())
+                    .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                      @Override
+                      public void onClick(DialogInterface arg0, int arg1) {
+                        // TODO Auto-generated method stub
+                        //android.os.Process.killProcess(android.os.Process.myPid());
+                        //System.exit(0);
+                      }
+                    }).show();
+          }
+        }
+      });
+    }
+    //set dmsl listener
+    if(!dmsl.isInitialized()){
+      dmsl.setOnStatusChangedListener(new OnStatusChangedListener() {
+        @Override
+        public void onStatusChanged(Object o, STATUS status) {
+          if(status == STATUS.INITIALIZATION_FAILED){
+            new AlertDialog.Builder(mContext)
+                    .setTitle("无法载入图层")
+                    .setMessage("DynamicLayer地址无法连接"+dmsl.getUrl())
+                    .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                      @Override
+                      public void onClick(DialogInterface arg0, int arg1) {
+                        // TODO Auto-generated method stub
+                        //android.os.Process.killProcess(android.os.Process.myPid());
+                        //System.exit(0);
+                      }
+                    }).show();
           }
         }
       });
@@ -149,12 +192,12 @@ public class AttributeEditorActivity extends Activity {
 
         // convert event into screen click
         pointClicked = mapView.toMapPoint(x, y);
-
+        Polygon searchGeometry = GeometryEngine.buffer(pointClicked,mapView.getSpatialReference(), RADIUS,null);
         // build a query to select the clicked feature
         Query query = new Query();
         query.setOutFields(new String[] { "*" });
         query.setSpatialRelationship(SpatialRelationship.INTERSECTS);
-        query.setGeometry(pointClicked);
+        query.setGeometry(searchGeometry);
         query.setInSpatialReference(mapView.getSpatialReference());
 
         // call the select features method and implement the callbacklistener
@@ -201,17 +244,18 @@ public class AttributeEditorActivity extends Activity {
     });
 
     // TODO handle rotation
-    mExcuteTimer = new Timer();
+   // mExcuteTimer = new Timer();
     //mExcuteTimer.schedule(new timerListener(),1000,2000);
     mHandler = new Handler() {
       @Override
       public void handleMessage(Message msg) {
-
-        String str = LampStateExcute();
-        mTextView.setText(str);
-        Log.d(TAG, "--------------finish--------------");
+        mTextView.setText(mLampState);
+        Log.d(TAG, "--------------mLampState update--------------");
       }
     };
+    mContext = this;
+
+
 
   }
 
@@ -334,11 +378,12 @@ public class AttributeEditorActivity extends Activity {
         	attrs.put(featureLayer.getObjectIdField(),listAdapter.featureSet.getGraphics()[0].getAttributeValue(featureLayer.getObjectIdField()));
 			Graphic newGraphic = new Graphic(null, null, attrs);
             featureLayer.applyEdits(null, null, new Graphic[] { newGraphic }, createEditCallbackListener(updateMapLayer));
+
+
+
         }
 
         // close the dialog
-        Message msg = new Message();
-        mHandler.sendMessage(msg);
         dismissDialog(ATTRIBUTE_EDITOR_DIALOG_ID);
 
       }
@@ -383,8 +428,8 @@ public class AttributeEditorActivity extends Activity {
           // updated features
 
           if (updateLayer) {
-
-          dmsl.refresh();
+            featureCalculate();
+            dmsl.refresh();
 
           }
         }
@@ -398,7 +443,8 @@ public class AttributeEditorActivity extends Activity {
     };
   }
   public void onClick (View v){
-    ProgressDialog dialog = new ProgressDialog(this);
+    /* 环形进度条
+    ProgressDialog dialog = new ProgressDialog(mContext);
     dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);// 设置进度条的形式为圆形转动的进度条
     dialog.setCancelable(true);// 设置是否可以通过点击Back键取消
     dialog.setCanceledOnTouchOutside(false);// 设置在点击Dialog外是否取消Dialog进度条
@@ -426,7 +472,18 @@ public class AttributeEditorActivity extends Activity {
       }
     });
     dialog.setMessage("这是一个圆形进度条");
-    dialog.show();
+    //dialog.show();
+    featureCalculate();
+    */
+    /* 新建一个Intent对象 */
+    Intent intent = new Intent();
+    intent.putExtra("name","LeiPei");
+        /* 指定intent要启动的类 */
+    intent.setClass(this, layer_settings.class);
+        /* 启动一个新的Activity */
+    AttributeEditorActivity.this.startActivity(intent);
+        /* 关闭当前的Activity */
+    AttributeEditorActivity.this.finish();
 
   }
 
@@ -440,7 +497,8 @@ public class AttributeEditorActivity extends Activity {
 
     }
 
-  public String LampStateExcute(){
+  public void featureCalculate(){
+
     Query query = new Query();
     query.setOutFields(new String[] { "*" });
     query.setSpatialRelationship(SpatialRelationship.INTERSECTS);
@@ -448,6 +506,10 @@ public class AttributeEditorActivity extends Activity {
     query.setInSpatialReference(mapView.getSpatialReference());
 
     // call the select features method and implement the callbacklistener
+    ArcGISFeatureLayer cfeatureLayer = new ArcGISFeatureLayer(
+            "http://192.168.20.100:6080/arcgis/rest/services/FeatureAccess/lamp_state/FeatureServer/0",
+            MODE.SELECTION);
+
     featureLayer.queryFeatures(query, new CallbackListener<FeatureSet>() {
 
       // handle any errors
@@ -458,36 +520,6 @@ public class AttributeEditorActivity extends Activity {
       }
 
       public void onCallback(FeatureSet queryResults) {
-
-        ProgressDialog dialog = new ProgressDialog(getApplicationContext());
-        dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);// 设置进度条的形式为圆形转动的进度条
-        dialog.setCancelable(true);// 设置是否可以通过点击Back键取消
-        dialog.setCanceledOnTouchOutside(false);// 设置在点击Dialog外是否取消Dialog进度条
-        //dialog.setIcon(R.drawable.ic_launcher);//
-        // 设置提示的title的图标，默认是没有的，如果没有设置title的话只设置Icon是不会显示图标的
-        dialog.setTitle("提示");
-        // dismiss监听
-        dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
-
-          @Override
-          public void onDismiss(DialogInterface dialog) {
-            // TODO Auto-generated method stub
-
-          }
-        });
-        // 监听cancel事件
-        dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
-
-          @Override
-          public void onCancel(DialogInterface dialog) {
-            // TODO Auto-generated method stub
-            Message msg = new Message();
-            mHandler.sendMessage(msg);
-
-          }
-        });
-        dialog.setMessage("这是一个圆形进度条");
-        dialog.show();
 
         if (queryResults.getGraphics().length > 0) {
 
@@ -503,13 +535,13 @@ public class AttributeEditorActivity extends Activity {
           Log.d(TAG, "--------------Feature  onlight is" + onlight + "--------------");
           double rate = (onlight + 0.0) / queryResults.getGraphics().length * 100;
           mLampState = "灯亮率为" + new java.text.DecimalFormat("#.00").format(rate);
-
+          Message msg = new Message();
+          mHandler.sendMessage(msg);//用activity中的handler发送消息
+          Log.d(TAG, "--------------Feature--------------");
         }
-        dialog.dismiss();
+
       }
     });
-    return mLampState;
   }
-
 
 }
