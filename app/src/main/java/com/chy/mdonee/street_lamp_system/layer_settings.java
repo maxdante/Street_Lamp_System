@@ -51,10 +51,10 @@ public class layer_settings extends AppCompatActivity {
 
 
 
-    public void onReturn(View v){
+    public void onSave(View v){
         Save();
         Intent intent = new Intent();
-        intent.putExtra("name","LeiPei");
+        //intent.putExtra("name","LeiPei");
         /* 指定intent要启动的类 */
         intent.setClass(this,AttributeEditorActivity.class);
         /* 启动一个新的Activity */
@@ -63,6 +63,16 @@ public class layer_settings extends AppCompatActivity {
         layer_settings.this.finish();
     }
 
+    public void onReturn(View v){
+        Intent intent = new Intent();
+        //intent.putExtra("name","LeiPei");
+        /* 指定intent要启动的类 */
+        intent.setClass(this,AttributeEditorActivity.class);
+        /* 启动一个新的Activity */
+        layer_settings.this.startActivity(intent);
+        /* 关闭当前的Activity */
+        layer_settings.this.finish();
+    }
     public void Save(){
         settingReader.save(mDLayer,mDynamicLayer.getText().toString());
         settingReader.save(mFLayer,mFeatureLayer.getText().toString());
