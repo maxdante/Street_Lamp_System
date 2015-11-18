@@ -31,4 +31,13 @@
         android:layout_alignParentStart="true"
         android:textColor="#421639" />
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/btn_refresh_state"
+        android:id="@+id/button4"
+        android:layout_alignBottom="@+id/button"
+        android:layout_toEndOf="@+id/button"
+        android:onClick="onRefresh" />
+
 </RelativeLayout>

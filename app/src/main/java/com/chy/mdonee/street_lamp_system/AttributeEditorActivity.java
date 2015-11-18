@@ -128,10 +128,9 @@ public class AttributeEditorActivity extends Activity {
     listView = (ListView) listLayout.findViewById(R.id.list_view);
 
     // Create a new AttributeListAdapter when the feature layer is initialized
-
     if (featureLayer.isInitialized()) {
       listAdapter = new AttributeListAdapter(this, featureLayer.getFields(), featureLayer.getTypes(),
-          featureLayer.getTypeIdField());
+              featureLayer.getTypeIdField());
       featureCalculate();
     } else {
 
@@ -143,12 +142,12 @@ public class AttributeEditorActivity extends Activity {
 
           if (status == STATUS.INITIALIZED) {
             listAdapter = new AttributeListAdapter(AttributeEditorActivity.this, featureLayer.getFields(), featureLayer
-                .getTypes(), featureLayer.getTypeIdField());
+                    .getTypes(), featureLayer.getTypeIdField());
           }
           else if(status == STATUS.INITIALIZATION_FAILED){
             new AlertDialog.Builder(mContext)
                     .setTitle("无法载入图层")
-                    .setMessage("FeatureLayer地址无法连接"+featureLayer.getUrl())
+                    .setMessage(layer_settings.mFLayer+"地址无法连接，请检查网络连接和地址是否正确！")
                     .setPositiveButton("确定", new DialogInterface.OnClickListener() {
                       @Override
                       public void onClick(DialogInterface arg0, int arg1) {
@@ -169,7 +168,7 @@ public class AttributeEditorActivity extends Activity {
           if(status == STATUS.INITIALIZATION_FAILED){
             new AlertDialog.Builder(mContext)
                     .setTitle("无法载入图层")
-                    .setMessage("DynamicLayer地址无法连接"+dmsl.getUrl())
+                    .setMessage(layer_settings.mDLayer+"地址无法连接，请检查网络连接和地址是否正确！")
                     .setPositiveButton("确定", new DialogInterface.OnClickListener() {
                       @Override
                       public void onClick(DialogInterface arg0, int arg1) {
@@ -182,7 +181,6 @@ public class AttributeEditorActivity extends Activity {
         }
       });
     }
-
     // Set tap listener for MapView
     mapView.setOnSingleTapListener(new OnSingleTapListener() {
 
@@ -258,6 +256,12 @@ public class AttributeEditorActivity extends Activity {
 
 
   }
+  @Override
+  public void onResume(){
+    super.onResume();
+
+  }
+
 
   /**
    * Overidden method from Activity class - this is the recommended way of creating dialogs
@@ -442,6 +446,7 @@ public class AttributeEditorActivity extends Activity {
       }
     };
   }
+  //切换activity
   public void onClick (View v){
     /* 环形进度条
     ProgressDialog dialog = new ProgressDialog(mContext);
@@ -487,6 +492,10 @@ public class AttributeEditorActivity extends Activity {
 
   }
 
+  //刷新灯亮率
+  public void onRefresh(View v){
+    featureCalculate();
+  }
   class timerListener extends TimerTask {
     @Override
     public void run(){
@@ -504,11 +513,6 @@ public class AttributeEditorActivity extends Activity {
     query.setSpatialRelationship(SpatialRelationship.INTERSECTS);
     query.setWhere("OBJECTID  > 0");
     query.setInSpatialReference(mapView.getSpatialReference());
-
-    // call the select features method and implement the callbacklistener
-    ArcGISFeatureLayer cfeatureLayer = new ArcGISFeatureLayer(
-            "http://192.168.20.100:6080/arcgis/rest/services/FeatureAccess/lamp_state/FeatureServer/0",
-            MODE.SELECTION);
 
     featureLayer.queryFeatures(query, new CallbackListener<FeatureSet>() {
 

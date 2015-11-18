@@ -8,7 +8,10 @@
     <string name="title_activity_layer_settings">layer_settings</string>
     <string name="ArcGISDynamicMapServiceLayer_label">DynamicMapServiceLayer</string>
     <string name="ArcGISFeatureLayer_label">FeatureLayer</string>
-    <string name="btn_setting_save">Save</string>
+    <string name="btn_setting_save1">Save</string>
+    <string name="btn_setting_save0">edit</string>
     <string name="btn_setting_discard">Return</string>
     <string name="btn_setting">Setting</string>
+    <string name="title_activity_welcome_page">Welcome_page</string>
+    <string name="btn_refresh_state">Refresh</string>
 </resources>

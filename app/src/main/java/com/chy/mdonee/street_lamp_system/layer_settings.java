@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -24,7 +25,6 @@ public class layer_settings extends AppCompatActivity {
         mFeatureLayer = (EditText)findViewById(R.id.featurelyer);
         mDynamicLayer.setText(settingReader.getValues(mDLayer));
         mFeatureLayer.setText(settingReader.getValues(mFLayer));
-
     }
 
     @Override
@@ -52,26 +52,46 @@ public class layer_settings extends AppCompatActivity {
 
 
     public void onSave(View v){
-        Save();
-        Intent intent = new Intent();
-        //intent.putExtra("name","LeiPei");
-        /* 指定intent要启动的类 */
-        intent.setClass(this,AttributeEditorActivity.class);
-        /* 启动一个新的Activity */
-        layer_settings.this.startActivity(intent);
-        /* 关闭当前的Activity */
-        layer_settings.this.finish();
+        Button btn = (Button)findViewById(R.id.button2);
+        if(!mFeatureLayer.isEnabled()){
+            mDynamicLayer.clearFocus();
+            mFeatureLayer.clearFocus();
+            mFeatureLayer.setEnabled(true);
+            mDynamicLayer.setEnabled(true);
+            btn.setText(getResources().getString(R.string.btn_setting_save1));
+        }
+        else{
+            Save();
+            mFeatureLayer.setEnabled(false);
+            mDynamicLayer.setEnabled(false);
+            btn.setText(getResources().getString(R.string.btn_setting_save0));
+        }
+
+
     }
 
     public void onReturn(View v){
-        Intent intent = new Intent();
-        //intent.putExtra("name","LeiPei");
+        if(mFeatureLayer.isEnabled()){
+            mFeatureLayer.setEnabled(false);
+            mDynamicLayer.setEnabled(false);
+            Button btn = (Button)findViewById(R.id.button2);
+            btn.setText(getResources().getString(R.string.btn_setting_save0));
+            mDynamicLayer.clearFocus();
+            mFeatureLayer.clearFocus();
+            mDynamicLayer.setText(settingReader.getValues(mDLayer));
+            mFeatureLayer.setText(settingReader.getValues(mFLayer));
+        }
+        else{
+            Intent intent = new Intent();
+            //intent.putExtra("name","LeiPei");
         /* 指定intent要启动的类 */
-        intent.setClass(this,AttributeEditorActivity.class);
+            intent.setClass(this,AttributeEditorActivity.class);
         /* 启动一个新的Activity */
-        layer_settings.this.startActivity(intent);
+            layer_settings.this.startActivity(intent);
         /* 关闭当前的Activity */
-        layer_settings.this.finish();
+            layer_settings.this.finish();
+        }
+
     }
     public void Save(){
         settingReader.save(mDLayer,mDynamicLayer.getText().toString());
